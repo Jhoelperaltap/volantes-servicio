@@ -28,6 +28,18 @@ export async function query(text: string, params: any[] = []) {
   }
 }
 
+export function sql(strings: TemplateStringsArray, ...values: any[]) {
+  let query = strings[0]
+  const params: any[] = []
+
+  for (let i = 0; i < values.length; i++) {
+    query += `$${i + 1}` + strings[i + 1]
+    params.push(values[i])
+  }
+
+  return pool.query(query, params).then((result) => result.rows)
+}
+
 export async function testConnection() {
   try {
     const result = await pool.query("SELECT NOW() as current_time")

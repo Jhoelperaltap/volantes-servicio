@@ -246,7 +246,7 @@ export default function ConfiguracionPage() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.push("/admin")} className="mb-4">
+        <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Volver al Panel
         </Button>
