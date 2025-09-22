@@ -6,6 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Printer, ArrowLeft, MapPin, User, Calendar, Package, Mail, ImageIcon, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -19,13 +30,14 @@ interface ServiceTicketData {
   status: string
   requires_return: boolean
   pending_items: string
+  completion_note?: string // Added completion_note field
   technician_signature: string
   client_signature: string
   technician_signed_at: string
   client_signed_at: string
   completed_at: string
   created_at: string
-  image_url?: string // Added optional image_url field
+  image_url?: string
   location: {
     name: string
     address: string
@@ -49,6 +61,9 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
   const [emailMessage, setEmailMessage] = useState("")
   const [completeLoading, setCompleteLoading] = useState(false)
   const [userRole, setUserRole] = useState<string>("")
+  // Added states for the dialog of completing and the note
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
+  const [completionNote, setCompletionNote] = useState("")
   const router = useRouter()
 
   useEffect(() => {
@@ -83,7 +98,7 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
   }
 
   const handlePrint = () => {
-    // Abrir página de impresión en nueva ventana
+    // Open print page in new window
     window.open(`/volantes/${ticketId}/imprimir`, "_blank")
   }
 
@@ -103,24 +118,19 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
       const result = await response.json()
 
       if (response.ok) {
-        setEmailMessage("Email enviado correctamente")
+        setEmailMessage("Email sent successfully")
       } else {
-        setEmailMessage(result.error || "Error al enviar email")
+        setEmailMessage(result.error || "Error sending email")
       }
     } catch (error) {
-      setEmailMessage("Error de conexión")
+      setEmailMessage("Connection error")
     } finally {
       setEmailLoading(false)
     }
   }
 
+  // Modified function to include the completion note
   const handleCompleteTicket = async () => {
-    if (
-      !confirm("¿Estás seguro de que quieres marcar este volante como completado? Esta acción no se puede deshacer.")
-    ) {
-      return
-    }
-
     setCompleteLoading(true)
     try {
       const response = await fetch(`/api/service-tickets/${ticketId}/complete`, {
@@ -128,19 +138,24 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          completion_note: completionNote.trim() || null,
+        }),
       })
 
       const result = await response.json()
 
       if (response.ok) {
-        setEmailMessage("Volante marcado como completado exitosamente")
-        // Recargar los datos del volante
+        setEmailMessage("Ticket marked as completed successfully")
+        setShowCompleteDialog(false)
+        setCompletionNote("")
+        // Reload ticket data
         await fetchTicketDetail()
       } else {
-        setEmailMessage(result.error || "Error al completar el volante")
+        setEmailMessage(result.error || "Error completing ticket")
       }
     } catch (error) {
-      setEmailMessage("Error de conexión")
+      setEmailMessage("Connection error")
     } finally {
       setCompleteLoading(false)
     }
@@ -150,34 +165,34 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
     return (
       ["admin", "super_admin"].includes(userRole) &&
       ticket &&
-      (ticket.status === "pendiente" || ticket.status === "escalado")
+      (ticket.status === "pendiente" || ticket.status === "escalado" || ticket.status === "seguimiento")
     )
   }
 
   if (loading) {
-    return <div className="text-center py-8">Cargando volante...</div>
+    return <div className="text-center py-8">Loading ticket...</div>
   }
 
   if (!ticket) {
-    return <div className="text-center py-8">Volante no encontrado</div>
+    return <div className="text-center py-8">Ticket not found</div>
   }
 
   const getStatusBadge = (status: string, requiresReturn: boolean) => {
     if (status === "pendiente") {
-      return <Badge variant="destructive">Pendiente</Badge>
+      return <Badge variant="destructive">Pending</Badge>
     }
     if (requiresReturn) {
-      return <Badge variant="secondary">Seguimiento</Badge>
+      return <Badge variant="secondary">Follow-up</Badge>
     }
-    return <Badge variant="default">Completado</Badge>
+    return <Badge variant="default">Completed</Badge>
   }
 
   const getServiceTypeLabel = (type: string) => {
     const labels = {
-      mantenimiento: "Mantenimiento",
-      reparacion: "Reparación",
-      instalacion: "Instalación",
-      cambio_repuesto: "Cambio de Repuesto",
+      mantenimiento: "Maintenance",
+      reparacion: "Repair",
+      instalacion: "Installation",
+      cambio_repuesto: "Part Replacement",
     }
     return labels[type as keyof typeof labels] || type
   }
@@ -191,29 +206,63 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Volante #{ticket.ticket_number}</h1>
-            <p className="text-gray-600">Detalles del servicio técnico</p>
+            <h1 className="text-3xl font-bold text-gray-900">Ticket #{ticket.ticket_number}</h1>
+            <p className="text-gray-600">Technical service details</p>
           </div>
         </div>
         <div className="flex gap-2">
           {canCompleteTicket() && (
-            <Button
-              variant="default"
-              onClick={handleCompleteTicket}
-              disabled={completeLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {completeLoading ? "Completando..." : "Marcar Completado"}
-            </Button>
+            <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+              <DialogTrigger asChild>
+                <Button variant="default" className="bg-green-600 hover:bg-green-700">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Completed
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Complete Ticket</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to mark this ticket as completed? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="completion-note">Completion Note (optional)</Label>
+                    <Textarea
+                      id="completion-note"
+                      placeholder="E.g: Resolved with ticket #1234, replaced defective part..."
+                      value={completionNote}
+                      onChange={(e) => setCompletionNote(e.target.value)}
+                      rows={3}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Indicate which ticket closed this pending or follow-up, or any relevant information.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCompleteTicket}
+                    disabled={completeLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {completeLoading ? "Completing..." : "Complete Ticket"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
           <Button variant="outline" onClick={handleSendEmail} disabled={emailLoading}>
             <Mail className="w-4 h-4 mr-2" />
-            {emailLoading ? "Enviando..." : "Enviar Email"}
+            {emailLoading ? "Sending..." : "Send Email"}
           </Button>
           <Button onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-2" />
-            Imprimir
+            Print
           </Button>
         </div>
       </div>
@@ -228,62 +277,71 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            Como administrador, puedes marcar este volante como completado una vez que se haya resuelto el seguimiento o
-            items pendientes.
+            As an admin, you can mark this ticket as completed once the follow-up or pending items have been resolved.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Información principal */}
+      {/* Main Information */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Detalles del servicio */}
+          {/* Service Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Información del Servicio</CardTitle>
+              <CardTitle>Service Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-500">Tipo de Servicio</span>
+                <span className="text-sm font-medium text-gray-500">Service Type</span>
                 <span className="font-medium">{getServiceTypeLabel(ticket.service_type)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-500">Estado</span>
+                <span className="text-sm font-medium text-gray-500">Status</span>
                 {getStatusBadge(ticket.status, ticket.requires_return)}
               </div>
               <Separator />
               <div>
-                <h4 className="font-medium mb-2">Descripción del Problema</h4>
+                <h4 className="font-medium mb-2">Problem Description</h4>
                 <p className="text-gray-700">{ticket.description}</p>
               </div>
               {ticket.work_performed && (
                 <div>
-                  <h4 className="font-medium mb-2">Trabajo Realizado</h4>
+                  <h4 className="font-medium mb-2">Work Performed</h4>
                   <p className="text-gray-700">{ticket.work_performed}</p>
                 </div>
               )}
               {ticket.pending_items && (
                 <div>
-                  <h4 className="font-medium mb-2">Items Pendientes</h4>
+                  <h4 className="font-medium mb-2">Pending Items</h4>
                   <p className="text-red-600">{ticket.pending_items}</p>
+                </div>
+              )}
+              {/* Show completion note if it exists */}
+              {ticket.completion_note && (
+                <div>
+                  <h4 className="font-medium mb-2">Completion Note</h4>
+                  <p className="text-green-700 bg-green-50 p-3 rounded-lg border border-green-200">
+                    {ticket.completion_note}
+                  </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Image Reference */}
           {ticket.image_url && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5" />
-                  Imagen de Referencia
+                  Image Reference
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-center">
                   <img
                     src={ticket.image_url || "/placeholder.svg"}
-                    alt="Imagen del volante de servicio"
+                    alt="Service ticket image"
                     className="max-w-full max-h-96 object-contain rounded-lg border"
                   />
                 </div>
@@ -291,13 +349,13 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
             </Card>
           )}
 
-          {/* Repuestos utilizados */}
+          {/* Parts Used */}
           {ticket.parts_used && ticket.parts_used.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Repuestos Utilizados
+                  Parts Used
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -309,7 +367,7 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
                         {part.notes && <p className="text-sm text-gray-500">{part.notes}</p>}
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">Cantidad: {part.quantity}</p>
+                        <p className="font-medium">Quantity: {part.quantity}</p>
                       </div>
                     </div>
                   ))}
@@ -319,14 +377,14 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
           )}
         </div>
 
-        {/* Información lateral */}
+        {/* Sidebar Information */}
         <div className="space-y-6">
-          {/* Localidad */}
+          {/* Location */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                Localidad
+                Location
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -334,20 +392,20 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
               <p className="text-sm text-gray-600">{ticket.location.address}</p>
               <Separator />
               <p className="text-sm">
-                <span className="font-medium">Contacto:</span> {ticket.location.contact_person}
+                <span className="font-medium">Contact:</span> {ticket.location.contact_person}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Teléfono:</span> {ticket.location.contact_phone}
+                <span className="font-medium">Phone:</span> {ticket.location.contact_phone}
               </p>
             </CardContent>
           </Card>
 
-          {/* Técnico */}
+          {/* Technician */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5" />
-                Técnico
+                Technician
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -356,21 +414,21 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
             </CardContent>
           </Card>
 
-          {/* Fechas */}
+          {/* Dates */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Fechas
+                Dates
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <p className="text-sm font-medium">Creado</p>
+                <p className="text-sm font-medium">Created</p>
                 <p className="text-sm text-gray-600">{new Date(ticket.created_at).toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-sm font-medium">Completado</p>
+                <p className="text-sm font-medium">Completed</p>
                 <p className="text-sm text-gray-600">{new Date(ticket.completed_at).toLocaleString()}</p>
               </div>
             </CardContent>
@@ -378,37 +436,37 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
         </div>
       </div>
 
-      {/* Firmas */}
+      {/* Digital Signatures */}
       <Card>
         <CardHeader>
-          <CardTitle>Firmas Digitales</CardTitle>
+          <CardTitle>Digital Signatures</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium mb-2">Firma del Técnico</h4>
+              <h4 className="font-medium mb-2">Technician's Signature</h4>
               <div className="border rounded-lg p-4 bg-gray-50">
                 <img
                   src={ticket.technician_signature || "/placeholder.svg"}
-                  alt="Firma del técnico"
+                  alt="Technician's signature"
                   className="max-w-full h-auto"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Firmado el {new Date(ticket.technician_signed_at).toLocaleString()}
+                Signed on {new Date(ticket.technician_signed_at).toLocaleString()}
               </p>
             </div>
             <div>
-              <h4 className="font-medium mb-2">Firma del Cliente</h4>
+              <h4 className="font-medium mb-2">Client's Signature</h4>
               <div className="border rounded-lg p-4 bg-gray-50">
                 <img
                   src={ticket.client_signature || "/placeholder.svg"}
-                  alt="Firma del cliente"
+                  alt="Client's signature"
                   className="max-w-full h-auto"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Firmado el {new Date(ticket.client_signed_at).toLocaleString()}
+                Signed on {new Date(ticket.client_signed_at).toLocaleString()}
               </p>
             </div>
           </div>

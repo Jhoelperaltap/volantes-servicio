@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN st.status = 'pendiente' OR st.requires_return = true THEN 1 END) as pending_count
       FROM locations l
       LEFT JOIN service_tickets st ON l.id = st.location_id
-      WHERE l.is_active = true
       GROUP BY l.id, l.name
       HAVING COUNT(st.id) > 0
       ORDER BY ticket_count DESC, pending_count DESC

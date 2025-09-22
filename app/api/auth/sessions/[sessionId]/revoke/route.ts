@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { SessionManager } from "@/lib/session-manager"
 import { query } from "@/lib/database"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
@@ -12,7 +11,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const result = await query(
-      "SELECT token_id, user_id, expires_at FROM user_sessions WHERE id = $1 AND user_id = $2 AND is_active = true",
+      "SELECT id, user_id FROM user_sessions WHERE id = $1 AND user_id = $2 AND is_active = true",
       [sessionId, userId],
     )
 
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 })
     }
 
-    await SessionManager.logout(result.rows[0].token_id)
+    await query("UPDATE user_sessions SET is_active = false WHERE id = $1", [sessionId])
 
     return NextResponse.json({
       success: true,

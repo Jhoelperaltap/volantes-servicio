@@ -38,6 +38,9 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-user-id", decoded.userId)
   requestHeaders.set("x-user-role", decoded.role)
+  if (decoded.name) {
+    requestHeaders.set("x-user-name", decoded.name)
+  }
   if (decoded.sessionId) {
     requestHeaders.set("x-session-id", decoded.sessionId)
   }
@@ -65,6 +68,9 @@ export const config = {
     "/volantes/:path*",
     "/api/protected/:path*",
     "/api/auth/me",
+    "/api/auth/sessions/:path*",
+    "/api/auth/session-settings",
+    "/api/auth/logout-all",
     "/api/notifications/:path*",
     "/api/locations/:path*",
     "/api/parts/:path*",
@@ -76,5 +82,7 @@ export const config = {
     "/api/test-email", // agregando endpoint de prueba de email al middleware
   ],
 }
+
+
 
 
