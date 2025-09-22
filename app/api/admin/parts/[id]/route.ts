@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/database"
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
@@ -9,7 +9,30 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
+
+    const result = await query("SELECT * FROM parts WHERE id = $1", [id])
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Repuesto no encontrado" }, { status: 404 })
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (error) {
+    console.error("Error fetching part:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const userRole = request.headers.get("x-user-role")
+
+    if (!userRole || !["admin", "super_admin"].includes(userRole)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+
+    const { id } = await params
     const { name, part_number, description, category, is_active } = await request.json()
 
     if (!name || !part_number || !category) {
@@ -36,7 +59,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
@@ -44,7 +67,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     await query("DELETE FROM parts WHERE id = $1", [id])
 

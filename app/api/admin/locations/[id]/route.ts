@@ -1,15 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/database"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
-    if (!userRole || !["admin", "super_admin"].includes(userRole)) {
+    if (!userRole || !["tecnico", "admin", "super_admin"].includes(userRole)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     const result = await query("SELECT * FROM locations WHERE id = $1", [id])
 
@@ -24,15 +24,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
-    if (!userRole || !["admin", "super_admin"].includes(userRole)) {
+    if (!userRole || !["tecnico", "admin", "super_admin"].includes(userRole)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
     const { name, address, contact_person, contact_phone, contact_email } = await request.json()
 
     if (!name || !address || !contact_person) {
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Verificar si la localidad tiene volantes asociados
     const ticketsResult = await query("SELECT COUNT(*) as count FROM service_tickets WHERE location_id = $1", [id])

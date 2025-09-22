@@ -25,7 +25,7 @@ interface ServiceTicketData {
   client_signed_at: string
   completed_at: string
   created_at: string
-  image_url?: string
+  image_url?: string // agregando campo image_url para imagen adjunta
   location: {
     name: string
     address: string
@@ -67,14 +67,6 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
     }
   }
 
-  const normalizeImageUrl = (url?: string) => {
-    if (!url) return ""
-    if (url.startsWith("http")) return url
-    return url.startsWith("/uploads/")
-      ? url
-      : `/uploads/${url.replace(/^\/?uploads\//, "")}`
-  }
-
   const getServiceTypeLabel = (type: string) => {
     const labels = {
       mantenimiento: "Mantenimiento",
@@ -111,7 +103,7 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
           <div className="flex items-center gap-3 print:gap-2">
             {ticket.company.logo_url ? (
               <img
-                src={normalizeImageUrl(ticket.company.logo_url)}
+                src={ticket.company.logo_url || "/placeholder.svg"}
                 alt="Logo"
                 className="w-16 h-16 object-contain print:w-12 print:h-12"
               />
@@ -138,6 +130,7 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
           </div>
         </div>
       </div>
+
       {/* Información del servicio */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-3 print:gap-2 print:mb-2">
         {/* Localidad */}
@@ -249,11 +242,9 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
                     : `${window.location.origin}${ticket.image_url}`
                 }
                 alt="Imagen del volante de servicio"
-                className="max-w-full max-h-32 object-contain rounded border print:max-h-24"
-                onLoad={() => console.log("[v0] Image loaded successfully:", ticket.image_url)}
+                className="max-w-full max-h-32 object-contain rounded border print:max-h-24 print:!-webkit-print-color-adjust-exact print:!color-adjust-exact"
                 onError={(e) => {
-                  console.log("[v0] Image failed to load:", ticket.image_url)
-                  console.log("[v0] Error details:", e)
+                  console.error("Error loading image:", ticket.image_url)
                 }}
               />
             </div>

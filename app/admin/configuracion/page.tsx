@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Building2, Mail, Phone, MapPin, Save, Upload, X, ImageIcon, ArrowLeft } from "lucide-react"
 import { EmailTest } from "@/components/admin/email-test"
+import { SessionManagement } from "@/components/admin/session-management"
+import { SessionSettings } from "@/components/admin/session-settings"
 import { useRouter } from "next/navigation"
 
 interface CompanySettings {
@@ -251,11 +253,17 @@ export default function ConfiguracionPage() {
 
         <div>
           <h1 className="text-3xl font-bold">Configuración de Empresa</h1>
-          <p className="text-muted-foreground">Gestiona la información básica de tu empresa</p>
+          <p className="text-muted-foreground">
+            Gestiona la información básica de tu empresa y configuraciones de seguridad
+          </p>
         </div>
       </div>
 
       <div className="grid gap-6">
+        {/* Gestión de sesiones y configuración de sesiones */}
+        <SessionManagement />
+        <SessionSettings />
+
         {/* Información General */}
         <Card>
           <CardHeader>
@@ -324,6 +332,7 @@ export default function ConfiguracionPage() {
           </CardContent>
         </Card>
 
+        {/* Logo de la Empresa */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

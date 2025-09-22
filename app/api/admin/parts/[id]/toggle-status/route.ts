@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/database"
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userRole = request.headers.get("x-user-role")
 
@@ -9,7 +9,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     await query("UPDATE parts SET is_active = NOT is_active WHERE id = $1", [id])
 

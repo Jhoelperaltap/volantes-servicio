@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Eye, Printer, Mail } from "lucide-react"
+import { Eye, Printer, Mail, CheckCircle } from "lucide-react"
 
 interface ServiceTicket {
   id: string
@@ -23,9 +23,11 @@ interface ServiceTicket {
 export function ServiceTicketsTable() {
   const [tickets, setTickets] = useState<ServiceTicket[]>([])
   const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string>("")
 
   useEffect(() => {
     fetchTickets()
+    fetchUserRole()
   }, [])
 
   const fetchTickets = async () => {
@@ -39,6 +41,18 @@ export function ServiceTicketsTable() {
       console.error("Error fetching tickets:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUserRole = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const userData = await response.json()
+        setUserRole(userData.role)
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error)
     }
   }
 
@@ -66,9 +80,37 @@ export function ServiceTicketsTable() {
     }
   }
 
+  const handleCompleteTicket = async (ticketId: string, ticketNumber: number) => {
+    if (!confirm(`¿Estás seguro de que quieres marcar el volante #${ticketNumber} como completado?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/service-tickets/${ticketId}/complete`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (response.ok) {
+        alert("Volante marcado como completado exitosamente")
+        fetchTickets()
+      } else {
+        const result = await response.json()
+        alert(result.error || "Error al completar el volante")
+      }
+    } catch (error) {
+      alert("Error de conexión")
+    }
+  }
+
   const getStatusBadge = (status: string, requiresReturn: boolean) => {
     if (status === "pendiente") {
       return <Badge variant="destructive">Pendiente</Badge>
+    }
+    if (status === "escalado") {
+      return <Badge variant="destructive">Escalado</Badge>
     }
     if (requiresReturn) {
       return <Badge variant="secondary">Seguimiento</Badge>
@@ -101,7 +143,7 @@ export function ServiceTicketsTable() {
             <TableHead>Técnico</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Fecha</TableHead>
-            <TableHead className="w-[140px]">Acciones</TableHead>
+            <TableHead className="w-[180px]">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -131,6 +173,18 @@ export function ServiceTicketsTable() {
                   <Button variant="ghost" size="icon" onClick={() => handleSendEmail(ticket.id)} title="Enviar email">
                     <Mail className="h-4 w-4" />
                   </Button>
+                  {["admin", "super_admin"].includes(userRole) &&
+                    (ticket.status === "pendiente" || ticket.status === "escalado") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCompleteTicket(ticket.id, ticket.ticket_number)}
+                        title="Marcar como completado"
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
                 </div>
               </TableCell>
             </TableRow>

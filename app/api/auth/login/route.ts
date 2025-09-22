@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { authenticateUser, generateUserToken } from "@/lib/auth"
+import { authenticateUser } from "@/lib/auth"
+import { SessionManager } from "@/lib/session-manager"
+import { extractDeviceInfo } from "@/lib/device-fingerprint"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
@@ -16,14 +18,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
-    const token = await generateUserToken(user)
+    const deviceInfo = extractDeviceInfo(request)
+
+    const { token, sessionId } = await SessionManager.createSession(user.id, user.email, user.role, deviceInfo)
 
     const cookieStore = await cookies()
     cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 2 * 60 * 60, // Cambiado de 24 horas a 2 horas
+      maxAge: 8 * 60 * 60, // Aumentado a 8 horas para coincidir con el token
     })
 
     return NextResponse.json({
@@ -34,6 +38,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         role: user.role,
       },
+      sessionId, // Devolver sessionId para referencia del cliente
     })
   } catch (error) {
     console.error("Error en login:", error)

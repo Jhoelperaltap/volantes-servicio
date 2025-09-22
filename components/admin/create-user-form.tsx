@@ -20,8 +20,6 @@ interface CreateUserFormData {
 }
 
 export function CreateUserForm() {
-  console.log("[v0] CreateUserForm component rendering")
-
   const router = useRouter()
   const [formData, setFormData] = useState<CreateUserFormData>({
     name: "",
@@ -35,7 +33,6 @@ export function CreateUserForm() {
   const [success, setSuccess] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("[v0] Form submission started")
     e.preventDefault()
     setError("")
     setSuccess("")

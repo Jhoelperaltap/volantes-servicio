@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const userRole = request.headers.get("x-user-role")
 
-    if (!userRole || !["admin", "super_admin"].includes(userRole)) {
+    if (!userRole || !["tecnico", "admin", "super_admin"].includes(userRole)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const userRole = request.headers.get("x-user-role")
 
-    if (!userRole || !["admin", "super_admin"].includes(userRole)) {
+    if (!userRole || !["tecnico", "admin", "super_admin"].includes(userRole)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 

@@ -5,8 +5,6 @@ interface QueryResult {
 
 // Simulación temporal para desarrollo - reemplazar con conexión real
 export async function query(text: string, params?: any[]): Promise<QueryResult> {
-  console.log("[v0] Database query:", text, params)
-
   // En desarrollo, retornar datos mock
   if (process.env.NODE_ENV === "development") {
     return {
@@ -25,7 +23,7 @@ export async function query(text: string, params?: any[]): Promise<QueryResult> 
 
     return await response.json()
   } catch (error) {
-    console.error("[v0] Database error:", error)
+    console.error("Database error:", error)
     throw error
   }
 }

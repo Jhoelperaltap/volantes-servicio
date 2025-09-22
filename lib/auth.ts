@@ -19,11 +19,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
-  console.log("[v0] Authenticating user:", email)
-
   const connectionOk = await testConnection()
   if (!connectionOk) {
-    console.log("[v0] Database connection failed")
     return null
   }
 
@@ -33,21 +30,17 @@ export async function authenticateUser(email: string, password: string): Promise
   )
 
   if (result.rows.length === 0) {
-    console.log("[v0] No user found with email:", email)
     return null
   }
 
   const user = result.rows[0]
-  console.log("[v0] User found:", { id: user.id, email: user.email, role: user.role })
 
   const isValid = await verifyPassword(password, user.password_hash)
 
   if (!isValid) {
-    console.log("[v0] Password verification failed")
     return null
   }
 
-  console.log("[v0] Authentication successful")
   return {
     id: user.id,
     email: user.email,

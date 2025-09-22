@@ -7,6 +7,8 @@ export interface JWTPayload extends JoseJWTPayload {
   userId: string
   email: string
   role: "tecnico" | "admin" | "super_admin"
+  tokenId?: string
+  sessionId?: string
   [key: string]: any // Index signature para compatibilidad
 }
 
@@ -14,7 +16,7 @@ export async function generateToken(payload: Omit<JWTPayload, "iat" | "exp">): P
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("2h") // Cambiado de 24h a 2h
+    .setExpirationTime("8h") // Aumentado de 2h a 8h para evitar logout frecuente
     .sign(JWT_SECRET)
 }
 

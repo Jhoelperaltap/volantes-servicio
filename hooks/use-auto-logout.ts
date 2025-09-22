@@ -12,8 +12,8 @@ interface UseAutoLogoutOptions {
 
 export function useAutoLogout(options: UseAutoLogoutOptions = {}) {
   const {
-    checkInterval = 3, // Verificar cada 3 minutos (más frecuente)
-    warningTime = 2, // avisar 2 minutos antes
+    checkInterval = 15, // Verificar cada 15 minutos (menos frecuente)
+    warningTime = 5, // avisar 5 minutos antes
     onWarning,
     onLogout,
   } = options
@@ -72,7 +72,7 @@ export function useAutoLogout(options: UseAutoLogoutOptions = {}) {
     window.fetch = async (...args) => {
       const response = await originalFetch(...args)
 
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
         await performLogout()
       }
 
@@ -87,7 +87,7 @@ export function useAutoLogout(options: UseAutoLogoutOptions = {}) {
 
   useEffect(() => {
     let inactivityTimer: NodeJS.Timeout
-    const INACTIVITY_TIME = 30 * 60 * 1000 // 30 minutos de inactividad
+    const INACTIVITY_TIME = 60 * 60 * 1000 // Aumentado de 30 a 60 minutos de inactividad
 
     const resetInactivityTimer = () => {
       clearTimeout(inactivityTimer)

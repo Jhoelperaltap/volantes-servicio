@@ -135,7 +135,6 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
 
   const fetchTechnicians = async () => {
     try {
-      console.log("[v0] Fetching technicians...")
       const response = await fetch("/api/chat/technicians", {
         headers: {
           "x-user-role": userRole,
@@ -145,10 +144,9 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
 
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Technicians fetched:", data)
         setTechnicians(data)
       } else {
-        console.error("[v0] Error response fetching technicians:", await response.text())
+        console.error("Error response fetching technicians:", await response.text())
       }
     } catch (error) {
       console.error("Error fetching technicians:", error)
@@ -183,7 +181,6 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
 
   const fetchTickets = async () => {
     try {
-      console.log("[v0] Fetching tickets...")
       const response = await fetch("/api/admin/tickets", {
         headers: {
           "x-user-role": userRole,
@@ -193,10 +190,9 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
 
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Tickets fetched:", data)
         setTickets(data.slice(0, 20)) // Limitar a 20 tickets más recientes
       } else {
-        console.error("[v0] Error response fetching tickets:", await response.text())
+        console.error("Error response fetching tickets:", await response.text())
       }
     } catch (error) {
       console.error("Error fetching tickets:", error)
@@ -204,13 +200,6 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
   }
 
   const startNewChat = (technicianId: string) => {
-    console.log("[v0] Starting new chat with technician:", technicianId)
-    console.log("[v0] Technician ID length:", technicianId.length)
-    console.log(
-      "[v0] Full technician object:",
-      technicians.find((t) => t.id === technicianId),
-    )
-
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(technicianId)) {
       console.error("ID de técnico inválido:", technicianId)
@@ -219,7 +208,6 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
     }
 
     const conversationId = userId < technicianId ? `${userId}-${technicianId}` : `${technicianId}-${userId}`
-    console.log("[v0] Generated conversation ID:", conversationId)
     setSelectedConversation(conversationId)
     setShowTechnicians(false)
     if (!selectedTicket && ["admin", "super_admin"].includes(userRole)) {
@@ -231,17 +219,11 @@ export function ChatWindow({ userRole, userId, isOpen, onClose, ticketId, onMess
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return
 
-    console.log("[v0] Sending message, conversation:", selectedConversation)
-
     // Los UUIDs tienen formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 caracteres)
     // La conversación tiene formato: uuid1-uuid2, pero necesitamos extraer los UUIDs completos
     const uuid1 = selectedConversation.substring(0, 36)
     const uuid2 = selectedConversation.substring(37) // 36 + 1 para saltar el guión separador
     const recipientId = uuid1 === userId ? uuid2 : uuid1
-
-    console.log("[v0] UUID1:", uuid1, "length:", uuid1?.length)
-    console.log("[v0] UUID2:", uuid2, "length:", uuid2?.length)
-    console.log("[v0] RecipientId:", recipientId, "length:", recipientId?.length)
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(recipientId)) {

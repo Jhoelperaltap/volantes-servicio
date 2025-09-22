@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Printer, ArrowLeft, MapPin, User, Calendar, Package, Mail, ImageIcon } from "lucide-react"
+import { Printer, ArrowLeft, MapPin, User, Calendar, Package, Mail, ImageIcon, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface ServiceTicketData {
@@ -47,10 +47,13 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
   const [loading, setLoading] = useState(true)
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailMessage, setEmailMessage] = useState("")
+  const [completeLoading, setCompleteLoading] = useState(false)
+  const [userRole, setUserRole] = useState<string>("")
   const router = useRouter()
 
   useEffect(() => {
     fetchTicketDetail()
+    fetchUserRole()
   }, [ticketId])
 
   const fetchTicketDetail = async () => {
@@ -64,6 +67,18 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
       console.error("Error fetching ticket detail:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUserRole = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const userData = await response.json()
+        setUserRole(userData.role)
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error)
     }
   }
 
@@ -97,6 +112,46 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
     } finally {
       setEmailLoading(false)
     }
+  }
+
+  const handleCompleteTicket = async () => {
+    if (
+      !confirm("¿Estás seguro de que quieres marcar este volante como completado? Esta acción no se puede deshacer.")
+    ) {
+      return
+    }
+
+    setCompleteLoading(true)
+    try {
+      const response = await fetch(`/api/service-tickets/${ticketId}/complete`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setEmailMessage("Volante marcado como completado exitosamente")
+        // Recargar los datos del volante
+        await fetchTicketDetail()
+      } else {
+        setEmailMessage(result.error || "Error al completar el volante")
+      }
+    } catch (error) {
+      setEmailMessage("Error de conexión")
+    } finally {
+      setCompleteLoading(false)
+    }
+  }
+
+  const canCompleteTicket = () => {
+    return (
+      ["admin", "super_admin"].includes(userRole) &&
+      ticket &&
+      (ticket.status === "pendiente" || ticket.status === "escalado")
+    )
   }
 
   if (loading) {
@@ -141,6 +196,17 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          {canCompleteTicket() && (
+            <Button
+              variant="default"
+              onClick={handleCompleteTicket}
+              disabled={completeLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              {completeLoading ? "Completando..." : "Marcar Completado"}
+            </Button>
+          )}
           <Button variant="outline" onClick={handleSendEmail} disabled={emailLoading}>
             <Mail className="w-4 h-4 mr-2" />
             {emailLoading ? "Enviando..." : "Enviar Email"}
@@ -155,6 +221,16 @@ export function ServiceTicketDetail({ ticketId }: ServiceTicketDetailProps) {
       {emailMessage && (
         <Alert>
           <AlertDescription>{emailMessage}</AlertDescription>
+        </Alert>
+      )}
+
+      {canCompleteTicket() && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            Como administrador, puedes marcar este volante como completado una vez que se haya resuelto el seguimiento o
+            items pendientes.
+          </AlertDescription>
         </Alert>
       )}
 
