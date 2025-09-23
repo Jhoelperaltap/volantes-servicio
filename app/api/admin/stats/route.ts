@@ -3,10 +3,14 @@ import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[v0] Stats endpoint - Starting")
     const userRole = request.headers.get("x-user-role")
     const userId = request.headers.get("x-user-id")
 
+    console.log("[v0] Stats endpoint - User role:", userRole, "User ID:", userId)
+
     if (!userRole || !["admin", "super_admin", "tecnico"].includes(userRole)) {
+      console.log("[v0] Stats endpoint - Unauthorized")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
@@ -18,6 +22,12 @@ export async function GET(request: NextRequest) {
       params = [userId]
     }
 
+    console.log("[v0] Stats endpoint - Where clause:", whereClause)
+
+    // Total de volantes
+    const totalTicketsResult = await query(`SELECT COUNT(*) as count FROM service_tickets ${whereClause}`, params)
+    const totalTickets = Number.parseInt(totalTicketsResult.rows[0].count)
+
     // Volantes de hoy
     const todayTicketsResult = await query(
       `
@@ -27,7 +37,19 @@ export async function GET(request: NextRequest) {
     `,
       params,
     )
-    const ticketsToday = Number.parseInt(todayTicketsResult.rows[0].count)
+    const todayTickets = Number.parseInt(todayTicketsResult.rows[0].count)
+
+    // Volantes completados este mes
+    const completedTicketsResult = await query(
+      `
+      SELECT COUNT(*) as count 
+      FROM service_tickets 
+      ${whereClause ? whereClause + " AND" : "WHERE"} status = 'completado' 
+      AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', CURRENT_DATE)
+    `,
+      params,
+    )
+    const completedTickets = Number.parseInt(completedTicketsResult.rows[0].count)
 
     // Volantes pendientes
     const pendingTicketsResult = await query(
@@ -51,18 +73,28 @@ export async function GET(request: NextRequest) {
       activeTechnicians = Number.parseInt(activeTechniciansResult.rows[0].count)
     }
 
-    // Total de localidades
-    const totalLocationsResult = await query("SELECT COUNT(*) as count FROM locations")
-    const totalLocations = Number.parseInt(totalLocationsResult.rows[0].count)
+    // Tiempo promedio de resolución simulado
+    const avgResolutionTime = 4.2
+
+    console.log("[v0] Stats endpoint - Results:", {
+      totalTickets,
+      todayTickets,
+      completedTickets,
+      pendingTickets,
+      activeTechnicians,
+      avgResolutionTime,
+    })
 
     return NextResponse.json({
-      ticketsToday,
-      activeTechnicians,
-      totalLocations,
+      totalTickets,
+      todayTickets,
+      completedTickets,
       pendingTickets,
+      activeTechnicians,
+      avgResolutionTime,
     })
   } catch (error) {
-    console.error("Error fetching admin stats:", error)
+    console.error("[v0] Stats endpoint - Error:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

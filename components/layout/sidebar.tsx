@@ -6,7 +6,20 @@ import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "./notification-bell"
-import { Building2, Users, FileText, MapPin, Package, Bell, Settings, LogOut, Menu, X, Home } from "lucide-react"
+import {
+  Building2,
+  Users,
+  FileText,
+  MapPin,
+  Package,
+  Bell,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  Wrench,
+} from "lucide-react"
 
 interface SidebarProps {
   userRole: "tecnico" | "admin" | "super_admin"
@@ -52,6 +65,18 @@ export function Sidebar({ userRole }: SidebarProps) {
       href: "/admin/localidades",
       icon: MapPin,
       roles: ["tecnico", "admin", "super_admin"],
+    },
+    {
+      title: "Equipos",
+      href: "/admin/equipos",
+      icon: Package,
+      roles: ["admin", "super_admin"],
+    },
+    {
+      title: "Tipos de Equipo",
+      href: "/admin/tipos-equipo",
+      icon: Wrench,
+      roles: ["admin", "super_admin"],
     },
     {
       title: "Repuestos",

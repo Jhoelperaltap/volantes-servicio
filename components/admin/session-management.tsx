@@ -64,13 +64,15 @@ export function SessionManagement() {
         })
         fetchSessions() // Recargar lista
       } else {
-        throw new Error("Error al cerrar sesión")
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error("Error revoking session:", error)
       toast({
         title: "Error",
-        description: "No se pudo cerrar la sesión",
+        description: error instanceof Error ? error.message : "No se pudo cerrar la sesión",
         variant: "destructive",
       })
     } finally {
@@ -93,13 +95,15 @@ export function SessionManagement() {
         })
         fetchSessions() // Recargar lista
       } else {
-        throw new Error("Error al cerrar todas las sesiones")
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error("Error logging out all devices:", error)
       toast({
         title: "Error",
-        description: "No se pudieron cerrar todas las sesiones",
+        description: error instanceof Error ? error.message : "No se pudieron cerrar todas las sesiones",
         variant: "destructive",
       })
     } finally {

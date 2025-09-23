@@ -79,9 +79,12 @@ export const config = {
     "/api/admin/:path*",
     "/api/upload/:path*",
     "/api/chat/:path*",
+    "/api/cascade-selection", // Agregando endpoint de selección en cascada para autenticación
     "/api/test-email", // agregando endpoint de prueba de email al middleware
   ],
 }
+
+    
 
 
 

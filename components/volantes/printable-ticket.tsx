@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Building2, MapPin, User, Package, PenTool } from "lucide-react"
+import { Building2, MapPin, User, Package } from "lucide-react"
 
 interface PrintableTicketProps {
   ticketId: string
@@ -42,6 +41,12 @@ interface ServiceTicketData {
     phone: string
     email: string
     logo_url?: string
+  }
+  equipment?: {
+    type: string
+    brand: string
+    model: string
+    serial_number: string
   }
 }
 
@@ -96,7 +101,7 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white print:shadow-none print:max-w-none print:text-xs">
+    <div className="max-w-4xl mx-auto bg-white print:shadow-none print:max-w-none print:text-xs print:leading-tight">
       {/* Header con logo de empresa */}
       <div className="border-b-2 border-blue-600 pb-3 mb-3 print:pb-2 print:mb-2">
         <div className="flex items-start justify-between">
@@ -132,108 +137,124 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
       </div>
 
       {/* Información del servicio */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-3 print:gap-2 print:mb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-2 print:grid-cols-3 print:gap-1 print:mb-1">
         {/* Localidad */}
-        <Card className="print:shadow-none print:border">
-          <CardContent className="p-3 print:p-2">
-            <h3 className="font-semibold mb-2 flex items-center gap-2 print:text-xs print:mb-1">
-              <MapPin className="w-4 h-4 text-blue-600 print:w-3 print:h-3" />
-              Información de la Localidad
-            </h3>
-            <div className="space-y-1 text-sm print:text-xs print:space-y-0">
-              <p>
-                <span className="font-medium">Nombre:</span> {ticket.location.name}
-              </p>
-              <p>
-                <span className="font-medium">Dirección:</span> {ticket.location.address}
-              </p>
-              <p>
-                <span className="font-medium">Contacto:</span> {ticket.location.contact_person}
-              </p>
-              <p>
-                <span className="font-medium">Teléfono:</span> {ticket.location.contact_phone}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border rounded p-2 print:p-1 print:border-gray-400">
+          <h3 className="font-semibold mb-1 flex items-center gap-1 text-sm print:text-xs print:mb-0">
+            <MapPin className="w-3 h-3 text-blue-600 print:w-2 print:h-2" />
+            Localidad
+          </h3>
+          <div className="space-y-0 text-xs print:text-[10px]">
+            <p>
+              <span className="font-medium">Nombre:</span> {ticket.location.name}
+            </p>
+            <p>
+              <span className="font-medium">Dirección:</span> {ticket.location.address}
+            </p>
+            <p>
+              <span className="font-medium">Contacto:</span> {ticket.location.contact_person}
+            </p>
+            <p>
+              <span className="font-medium">Teléfono:</span> {ticket.location.contact_phone}
+            </p>
+          </div>
+        </div>
 
         {/* Técnico */}
-        <Card className="print:shadow-none print:border">
-          <CardContent className="p-3 print:p-2">
-            <h3 className="font-semibold mb-2 flex items-center gap-2 print:text-xs print:mb-1">
-              <User className="w-4 h-4 text-blue-600 print:w-3 print:h-3" />
-              Técnico Asignado
-            </h3>
-            <div className="space-y-1 text-sm print:text-xs print:space-y-0">
-              <p>
-                <span className="font-medium">Nombre:</span> {ticket.technician.name}
-              </p>
-              <p>
-                <span className="font-medium">Email:</span> {ticket.technician.email}
-              </p>
-              <p>
-                <span className="font-medium">Tipo de Servicio:</span> {getServiceTypeLabel(ticket.service_type)}
-              </p>
-              <p>
-                <span className="font-medium">Estado:</span> {getStatusBadge(ticket.status, ticket.requires_return)}
-              </p>
+        <div className="border rounded p-2 print:p-1 print:border-gray-400">
+          <h3 className="font-semibold mb-1 flex items-center gap-1 text-sm print:text-xs print:mb-0">
+            <User className="w-3 h-3 text-blue-600 print:w-2 print:h-2" />
+            Técnico
+          </h3>
+          <div className="space-y-0 text-xs print:text-[10px]">
+            <p>
+              <span className="font-medium">Nombre:</span> {ticket.technician.name}
+            </p>
+            <p>
+              <span className="font-medium">Email:</span> {ticket.technician.email}
+            </p>
+            <p>
+              <span className="font-medium">Servicio:</span> {getServiceTypeLabel(ticket.service_type)}
+            </p>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Estado:</span>
+              {getStatusBadge(ticket.status, ticket.requires_return)}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        {/* Información del equipo */}
+        <div className="border rounded p-2 print:p-1 print:border-gray-400">
+          <h3 className="font-semibold mb-1 flex items-center gap-1 text-sm print:text-xs print:mb-0">
+            <Package className="w-3 h-3 text-blue-600 print:w-2 print:h-2" />
+            Equipo
+          </h3>
+          <div className="space-y-0 text-xs print:text-[10px]">
+            <p>
+              <span className="font-medium">Tipo:</span> {ticket.equipment?.type || "No especificado"}
+            </p>
+            <p>
+              <span className="font-medium">Marca:</span> {ticket.equipment?.brand || "No especificado"}
+            </p>
+            <p>
+              <span className="font-medium">Modelo:</span> {ticket.equipment?.model || "No especificado"}
+            </p>
+            <p>
+              <span className="font-medium">Serie:</span> {ticket.equipment?.serial_number || "No especificado"}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Descripción del trabajo */}
-      <Card className="mb-3 print:mb-2 print:shadow-none print:border">
-        <CardContent className="p-3 print:p-2">
-          <h3 className="font-semibold mb-2 print:text-xs print:mb-1">Descripción del Problema/Solicitud</h3>
-          <p className="text-sm text-gray-700 mb-2 print:text-xs print:mb-1">{ticket.description}</p>
-
+      <div className="border rounded p-2 mb-2 print:p-1 print:mb-1 print:border-gray-400">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 print:grid-cols-2 print:gap-2">
+          <div>
+            <h3 className="font-semibold mb-1 text-sm print:text-xs print:mb-0">Descripción del Problema</h3>
+            <p className="text-xs text-gray-700 print:text-[10px]">{ticket.description}</p>
+          </div>
           {ticket.work_performed && (
-            <>
-              <h3 className="font-semibold mb-2 print:text-xs print:mb-1">Trabajo Realizado</h3>
-              <p className="text-sm text-gray-700 print:text-xs">{ticket.work_performed}</p>
-            </>
+            <div>
+              <h3 className="font-semibold mb-1 text-sm print:text-xs print:mb-0">Trabajo Realizado</h3>
+              <p className="text-xs text-gray-700 print:text-[10px]">{ticket.work_performed}</p>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Repuestos utilizados */}
-      {ticket.parts_used && ticket.parts_used.length > 0 && (
-        <Card className="mb-3 print:mb-2 print:shadow-none print:border">
-          <CardContent className="p-3 print:p-2">
-            <h3 className="font-semibold mb-2 flex items-center gap-2 print:text-xs print:mb-1">
-              <Package className="w-4 h-4 text-blue-600 print:w-3 print:h-3" />
-              Repuestos Utilizados
-            </h3>
+      {/* Repuestos utilizados e imagen de referencia */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-2 print:grid-cols-2 print:gap-1 print:mb-1">
+        {/* Repuestos utilizados */}
+        {ticket.parts_used && ticket.parts_used.length > 0 && (
+          <div className="border rounded p-2 print:p-1 print:border-gray-400">
+            <h3 className="font-semibold mb-1 text-sm print:text-xs print:mb-0">Repuestos Utilizados</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm print:text-xs">
+              <table className="w-full text-xs print:text-[10px]">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-1 print:py-0">Repuesto</th>
-                    <th className="text-center py-1 print:py-0">Cantidad</th>
-                    <th className="text-left py-1 print:py-0">Notas</th>
+                    <th className="text-left py-0">Repuesto</th>
+                    <th className="text-center py-0">Cant.</th>
+                    <th className="text-left py-0">Notas</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ticket.parts_used.map((part: any, index: number) => (
                     <tr key={index} className="border-b">
-                      <td className="py-1 print:py-0">{part.name}</td>
-                      <td className="text-center py-1 print:py-0">{part.quantity}</td>
-                      <td className="py-1 print:py-0">{part.notes || "-"}</td>
+                      <td className="py-0">{part.name}</td>
+                      <td className="text-center py-0">{part.quantity}</td>
+                      <td className="py-0">{part.notes || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Imagen de Referencia */}
-      {ticket.image_url && (
-        <Card className="mb-3 print:mb-2 print:shadow-none print:border">
-          <CardContent className="p-3 print:p-2">
-            <h3 className="font-semibold mb-2 print:text-xs print:mb-1">Imagen de Referencia</h3>
+        {/* Imagen de Referencia */}
+        {ticket.image_url && (
+          <div className="border rounded p-2 print:p-1 print:border-gray-400">
+            <h3 className="font-semibold mb-1 text-sm print:text-xs print:mb-0">Imagen de Referencia</h3>
             <div className="flex justify-center">
               <img
                 src={
@@ -242,85 +263,77 @@ export function PrintableTicket({ ticketId }: PrintableTicketProps) {
                     : `${window.location.origin}${ticket.image_url}`
                 }
                 alt="Imagen del volante de servicio"
-                className="max-w-full max-h-32 object-contain rounded border print:max-h-24 print:!-webkit-print-color-adjust-exact print:!color-adjust-exact"
+                className="max-w-full max-h-20 object-contain rounded border print:max-h-16"
                 onError={(e) => {
                   console.error("Error loading image:", ticket.image_url)
                 }}
               />
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Items pendientes */}
       {ticket.pending_items && (
-        <Card className="mb-3 print:mb-2 print:shadow-none print:border">
-          <CardContent className="p-3 print:p-2">
-            <h3 className="font-semibold mb-2 text-red-600 print:text-xs print:mb-1">Items Pendientes</h3>
-            <p className="text-sm text-red-700 print:text-xs">{ticket.pending_items}</p>
-          </CardContent>
-        </Card>
+        <div className="border rounded p-2 mb-2 print:p-1 print:mb-1 print:border-gray-400 bg-red-50 print:bg-white">
+          <h3 className="font-semibold mb-1 text-red-600 text-sm print:text-xs print:mb-0">Items Pendientes</h3>
+          <p className="text-xs text-red-700 print:text-[10px]">{ticket.pending_items}</p>
+        </div>
       )}
 
       {/* Firmas */}
-      <Card className="mb-3 print:mb-2 print:shadow-none print:border print:page-break-inside-avoid">
-        <CardContent className="p-3 print:p-2">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 print:text-xs print:mb-1">
-            <PenTool className="w-4 h-4 text-blue-600 print:w-3 print:h-3" />
-            Firmas Digitales
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
-            <div>
-              <h4 className="font-medium mb-1 print:text-xs">Firma del Técnico</h4>
-              <div className="border rounded-lg p-2 bg-gray-50 h-20 flex items-center justify-center print:h-16 print:p-1">
-                {ticket.technician_signature ? (
-                  <img
-                    src={ticket.technician_signature || "/placeholder.svg"}
-                    alt="Firma del técnico"
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400 text-xs">Sin firma</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 print:text-[10px]">
-                Firmado el {new Date(ticket.technician_signed_at).toLocaleString()}
-              </p>
-              <div className="mt-1 pt-1 border-t border-gray-300">
-                <p className="text-xs text-center print:text-[10px]">{ticket.technician.name}</p>
-                <p className="text-xs text-center text-gray-500 print:text-[10px]">Técnico</p>
-              </div>
+      <div className="border rounded p-2 mb-2 print:p-1 print:mb-1 print:border-gray-400 print:page-break-inside-avoid">
+        <h3 className="font-semibold mb-1 text-sm print:text-xs print:mb-0">Firmas Digitales</h3>
+        <div className="grid grid-cols-2 gap-3 print:gap-1">
+          <div>
+            <h4 className="font-medium mb-1 text-xs print:text-[10px]">Firma del Técnico</h4>
+            <div className="border rounded p-1 bg-gray-50 h-12 flex items-center justify-center print:h-10 print:bg-white">
+              {ticket.technician_signature ? (
+                <img
+                  src={ticket.technician_signature || "/placeholder.svg"}
+                  alt="Firma del técnico"
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <span className="text-gray-400 text-[10px]">Sin firma</span>
+              )}
             </div>
-            <div>
-              <h4 className="font-medium mb-1 print:text-xs">Firma del Cliente</h4>
-              <div className="border rounded-lg p-2 bg-gray-50 h-20 flex items-center justify-center print:h-16 print:p-1">
-                {ticket.client_signature ? (
-                  <img
-                    src={ticket.client_signature || "/placeholder.svg"}
-                    alt="Firma del cliente"
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400 text-xs">Sin firma</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 print:text-[10px]">
-                Firmado el {new Date(ticket.client_signed_at).toLocaleString()}
+            <div className="mt-1 pt-1 border-t border-gray-300">
+              <p className="text-[10px] text-center">{ticket.technician.name}</p>
+              <p className="text-[10px] text-center text-gray-500">Técnico</p>
+              <p className="text-[8px] text-gray-500 text-center">
+                {ticket.technician_signed_at ? new Date(ticket.technician_signed_at).toLocaleDateString() : "Sin fecha"}
               </p>
-              <div className="mt-1 pt-1 border-t border-gray-300">
-                <p className="text-xs text-center print:text-[10px]">{ticket.location.contact_person}</p>
-                <p className="text-xs text-center text-gray-500 print:text-[10px]">Cliente</p>
-              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <h4 className="font-medium mb-1 text-xs print:text-[10px]">Firma del Cliente</h4>
+            <div className="border rounded p-1 bg-gray-50 h-12 flex items-center justify-center print:h-10 print:bg-white">
+              {ticket.client_signature ? (
+                <img
+                  src={ticket.client_signature || "/placeholder.svg"}
+                  alt="Firma del cliente"
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <span className="text-gray-400 text-[10px]">Sin firma</span>
+              )}
+            </div>
+            <div className="mt-1 pt-1 border-t border-gray-300">
+              <p className="text-[10px] text-center">{ticket.location.contact_person}</p>
+              <p className="text-[10px] text-center text-gray-500">Cliente</p>
+              <p className="text-[8px] text-gray-500 text-center">
+                {ticket.client_signed_at ? new Date(ticket.client_signed_at).toLocaleDateString() : "Sin fecha"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Footer */}
-      <div className="text-center text-xs text-gray-500 border-t pt-2 print:text-[10px] print:pt-1">
-        <p>Este documento fue generado automáticamente el {new Date().toLocaleString()}</p>
+      <div className="text-center text-[10px] text-gray-500 border-t pt-1 print:text-[8px]">
         <p>
-          Volante de Servicio #{ticket.ticket_number} - {ticket.company.name}
+          Generado automáticamente el {new Date().toLocaleString()} - Volante #{ticket.ticket_number}
         </p>
       </div>
     </div>

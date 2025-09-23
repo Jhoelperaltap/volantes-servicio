@@ -66,8 +66,8 @@
     "fs": "0.0.1-security",
     "path": "0.12.7",
     "nodemailer": "7.0.6",
-    "@neondatabase/serverless": "1.0.1",
-    "uuid": "13.0.0"
+    "uuid": "13.0.0",
+    "@neondatabase/serverless": "1.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

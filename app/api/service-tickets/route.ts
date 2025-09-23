@@ -9,7 +9,10 @@ export async function POST(request: NextRequest) {
     }
 
     const {
+      companyId,
+      clientId,
       locationId,
+      equipmentId,
       serviceType,
       description,
       workPerformed,
@@ -19,11 +22,10 @@ export async function POST(request: NextRequest) {
       status,
       technicianSignature,
       clientSignature,
-      imageUrl, // Added imageUrl field to handle optional image
+      imageUrl,
     } = await request.json()
 
-    // Validaciones
-    if (!locationId || !serviceType || !description) {
+    if (!locationId || !equipmentId || !serviceType || !description) {
       return NextResponse.json({ error: "Campos obligatorios faltantes" }, { status: 400 })
     }
 
@@ -33,14 +35,16 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `INSERT INTO service_tickets (
-        technician_id, location_id, service_type, description, work_performed,
-        parts_used, status, requires_return, pending_items,
-        technician_signature, client_signature, technician_signed_at, client_signed_at, image_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        technician_id, location_id, equipment_id, 
+        service_type, description, work_performed, parts_used, status, 
+        requires_return, pending_items, technician_signature, client_signature, 
+        technician_signed_at, client_signed_at, image_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, ticket_number`,
       [
         userId,
         locationId,
+        equipmentId,
         serviceType,
         description,
         workPerformed || null,
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
         clientSignature,
         new Date().toISOString(),
         new Date().toISOString(),
-        imageUrl || null, // Added imageUrl parameter
+        imageUrl || null,
       ],
     )
 
@@ -118,17 +122,59 @@ export async function GET(request: NextRequest) {
       `SELECT 
         st.id, st.ticket_number, st.service_type, st.description, st.status,
         st.requires_return, st.completed_at, st.created_at, st.image_url,
-        l.name as location_name, l.address as location_address,
+        cl.name as location_name, cl.address as location_address, cl.city as location_city,
+        e.name as equipment_name, e.model as equipment_model, e.equipment_type,
         u.name as technician_name
       FROM service_tickets st
-      JOIN locations l ON st.location_id = l.id
+      JOIN client_locations cl ON st.location_id = cl.id
+      LEFT JOIN equipment e ON st.equipment_id = e.id
       JOIN users u ON st.technician_id = u.id
       ${whereClause}
       ORDER BY st.created_at DESC`,
       params,
     )
 
-    return NextResponse.json(result.rows)
+    const ticketsWithDetails = await Promise.all(
+      result.rows.map(async (ticket) => {
+        try {
+          // Obtener información del cliente a través de client_locations
+          const clientResult = await query(
+            `SELECT c.name as client_name, c.contact_email as client_email, c.contact_phone as client_phone,
+                    co.name as company_name, co.contact_email as company_email, co.contact_phone as company_phone
+             FROM client_locations cl
+             JOIN clients c ON cl.client_id = c.id
+             JOIN companies co ON c.company_id = co.id
+             WHERE cl.id = $1`,
+            [ticket.location_id],
+          )
+
+          const clientInfo = clientResult.rows[0] || {}
+
+          return {
+            ...ticket,
+            client_name: clientInfo.client_name || "Cliente no encontrado",
+            client_email: clientInfo.client_email || "",
+            client_phone: clientInfo.client_phone || "",
+            company_name: clientInfo.company_name || "Empresa no encontrada",
+            company_email: clientInfo.company_email || "",
+            company_phone: clientInfo.company_phone || "",
+          }
+        } catch (error) {
+          console.error("Error fetching client details for ticket:", ticket.id, error)
+          return {
+            ...ticket,
+            client_name: "Cliente no encontrado",
+            client_email: "",
+            client_phone: "",
+            company_name: "Empresa no encontrada",
+            company_email: "",
+            company_phone: "",
+          }
+        }
+      }),
+    )
+
+    return NextResponse.json(ticketsWithDetails)
   } catch (error) {
     console.error("Error fetching service tickets:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })

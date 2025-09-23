@@ -14,14 +14,43 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SignaturePad } from "./signature-pad"
 import { Separator } from "@/components/ui/separator"
-import { Plus, X, Package, MapPin, PenTool, Upload, ImageIcon } from "lucide-react"
+import {
+  Plus,
+  X,
+  Package,
+  MapPin,
+  PenTool,
+  Upload,
+  ImageIcon,
+  Building2,
+  Users,
+  Wrench,
+  ChevronRight,
+} from "lucide-react"
+
+interface Company {
+  id: string
+  name: string
+}
+
+interface Client {
+  id: string
+  name: string
+}
 
 interface Location {
   id: string
   name: string
   address: string
-  contact_person: string
-  contact_phone: string
+  city: string
+}
+
+interface Equipment {
+  id: string
+  name: string
+  model?: string
+  serial_number?: string
+  equipment_type?: string
 }
 
 interface Part {
@@ -40,7 +69,11 @@ interface UsedPart {
 }
 
 export function ServiceTicketForm() {
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const [equipment, setEquipment] = useState<Equipment[]>([])
+
   const [parts, setParts] = useState<Part[]>([])
   const [usedParts, setUsedParts] = useState<UsedPart[]>([])
   const [loading, setLoading] = useState(false)
@@ -51,9 +84,11 @@ export function ServiceTicketForm() {
   const [imageUploading, setImageUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Form state
   const [formData, setFormData] = useState({
+    companyId: "",
+    clientId: "",
     locationId: "",
+    equipmentId: "",
     serviceType: "",
     description: "",
     workPerformed: "",
@@ -68,19 +103,93 @@ export function ServiceTicketForm() {
   })
 
   useEffect(() => {
-    fetchLocations()
+    fetchCompanies()
     fetchParts()
   }, [])
 
-  const fetchLocations = async () => {
+  const fetchCompanies = async () => {
     try {
-      const response = await fetch("/api/locations")
+      const response = await fetch("/api/cascade-selection")
       if (response.ok) {
         const data = await response.json()
-        setLocations(data)
+        setCompanies(data.companies || [])
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error)
+    }
+  }
+
+  const fetchClients = async (companyId: string) => {
+    try {
+      const response = await fetch(`/api/cascade-selection?company_id=${companyId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data.clients || [])
+        setLocations([])
+        setEquipment([])
+        setFormData((prev) => ({ ...prev, clientId: "", locationId: "", equipmentId: "" }))
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error)
+    }
+  }
+
+  const fetchLocations = async (companyId: string, clientId: string) => {
+    try {
+      const response = await fetch(`/api/cascade-selection?company_id=${companyId}&client_id=${clientId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setLocations(data.locations || [])
+        setEquipment([])
+        setFormData((prev) => ({ ...prev, locationId: "", equipmentId: "" }))
       }
     } catch (error) {
       console.error("Error fetching locations:", error)
+    }
+  }
+
+  const fetchEquipment = async (companyId: string, clientId: string, locationId: string) => {
+    try {
+      const response = await fetch(
+        `/api/cascade-selection?company_id=${companyId}&client_id=${clientId}&location_id=${locationId}`,
+      )
+      if (response.ok) {
+        const data = await response.json()
+        setEquipment(data.equipment || [])
+        setFormData((prev) => ({ ...prev, equipmentId: "" }))
+      }
+    } catch (error) {
+      console.error("Error fetching equipment:", error)
+    }
+  }
+
+  const handleCompanyChange = (companyId: string) => {
+    setFormData((prev) => ({ ...prev, companyId }))
+    if (companyId) {
+      fetchClients(companyId)
+    } else {
+      setClients([])
+      setLocations([])
+      setEquipment([])
+    }
+  }
+
+  const handleClientChange = (clientId: string) => {
+    setFormData((prev) => ({ ...prev, clientId }))
+    if (clientId && formData.companyId) {
+      fetchLocations(formData.companyId, clientId)
+    } else {
+      setLocations([])
+      setEquipment([])
+    }
+  }
+
+  const handleLocationChange = (locationId: string) => {
+    setFormData((prev) => ({ ...prev, locationId }))
+    if (locationId && formData.companyId && formData.clientId) {
+      fetchEquipment(formData.companyId, formData.clientId, locationId)
+    } else {
+      setEquipment([])
     }
   }
 
@@ -99,13 +208,11 @@ export function ServiceTicketForm() {
   const handleImageUpload = async (file: File) => {
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       setError("Por favor selecciona un archivo de imagen válido")
       return
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError("El archivo es muy grande. Máximo 10MB permitido")
       return
@@ -119,7 +226,7 @@ export function ServiceTicketForm() {
       const response = await fetch("/api/upload/ticket-image", {
         method: "POST",
         headers: {
-          "x-user-id": "development-user", // For development purposes
+          "x-user-id": "development-user",
         },
         body: formData,
       })
@@ -127,7 +234,7 @@ export function ServiceTicketForm() {
       if (response.ok) {
         const data = await response.json()
         setImageUrl(data.url)
-        setError("") // Clear any previous errors
+        setError("")
       } else {
         const errorData = await response.json().catch(() => ({ error: "Error al subir la imagen" }))
         throw new Error(errorData.error || "Error al subir la imagen")
@@ -180,8 +287,14 @@ export function ServiceTicketForm() {
     setLoading(true)
     setError("")
 
-    // Validaciones
-    if (!formData.locationId || !formData.serviceType || !formData.description) {
+    if (
+      !formData.companyId ||
+      !formData.clientId ||
+      !formData.locationId ||
+      !formData.equipmentId ||
+      !formData.serviceType ||
+      !formData.description
+    ) {
       setError("Por favor complete todos los campos obligatorios")
       setLoading(false)
       return
@@ -199,7 +312,7 @@ export function ServiceTicketForm() {
         partsUsed: usedParts,
         technicianSignature: signatures.technician,
         clientSignature: signatures.client,
-        imageUrl: imageUrl || null, // Include image URL in ticket data
+        imageUrl: imageUrl || null,
       }
 
       const response = await fetch("/api/service-tickets", {
@@ -226,7 +339,150 @@ export function ServiceTicketForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Información básica */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Selección de Ubicación y Equipo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="company">
+              Empresa <span className="text-red-500">*</span>
+            </Label>
+            <Select value={formData.companyId} onValueChange={handleCompanyChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      {company.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.companyId && (
+            <div className="space-y-2">
+              <Label htmlFor="client">
+                Cliente <span className="text-red-500">*</span>
+              </Label>
+              <Select value={formData.clientId} onValueChange={handleClientChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {client.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.clientId && (
+            <div className="space-y-2">
+              <Label htmlFor="location">
+                Localidad <span className="text-red-500">*</span>
+              </Label>
+              <Select value={formData.locationId} onValueChange={handleLocationChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar localidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">{location.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {location.address} {location.city && `- ${location.city}`}
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.locationId && (
+            <div className="space-y-2">
+              <Label htmlFor="equipment">
+                Equipo <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.equipmentId}
+                onValueChange={(value) => setFormData({ ...formData, equipmentId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar equipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipment.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      <div className="flex items-center gap-2">
+                        <Wrench className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {item.model && `${item.model} `}
+                            {item.serial_number && `- S/N: ${item.serial_number}`}
+                            {item.equipment_type && ` (${item.equipment_type})`}
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.companyId && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="font-medium">Ruta:</span>
+                <div className="flex items-center gap-1">
+                  {companies.find((c) => c.id === formData.companyId)?.name}
+                  {formData.clientId && (
+                    <>
+                      <ChevronRight className="w-3 h-3" />
+                      {clients.find((c) => c.id === formData.clientId)?.name}
+                    </>
+                  )}
+                  {formData.locationId && (
+                    <>
+                      <ChevronRight className="w-3 h-3" />
+                      {locations.find((l) => l.id === formData.locationId)?.name}
+                    </>
+                  )}
+                  {formData.equipmentId && (
+                    <>
+                      <ChevronRight className="w-3 h-3" />
+                      {equipment.find((e) => e.id === formData.equipmentId)?.name}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="location">
@@ -246,7 +502,9 @@ export function ServiceTicketForm() {
                     <MapPin className="w-4 h-4" />
                     <div>
                       <div className="font-medium">{location.name}</div>
-                      <div className="text-sm text-gray-500">{location.address}</div>
+                      <div className="text-sm text-gray-500">
+                        {location.address} {location.city && `- ${location.city}`}
+                      </div>
                     </div>
                   </div>
                 </SelectItem>
@@ -276,7 +534,6 @@ export function ServiceTicketForm() {
         </div>
       </div>
 
-      {/* Descripción del problema */}
       <div className="space-y-2">
         <Label htmlFor="description">
           Descripción del Problema/Solicitud <span className="text-red-500">*</span>
@@ -358,7 +615,6 @@ export function ServiceTicketForm() {
         </CardContent>
       </Card>
 
-      {/* Trabajo realizado */}
       <div className="space-y-2">
         <Label htmlFor="workPerformed">Trabajo Realizado</Label>
         <Textarea
@@ -370,7 +626,6 @@ export function ServiceTicketForm() {
         />
       </div>
 
-      {/* Repuestos utilizados */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -430,7 +685,6 @@ export function ServiceTicketForm() {
         </CardContent>
       </Card>
 
-      {/* Estado y seguimiento */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
@@ -472,7 +726,6 @@ export function ServiceTicketForm() {
 
       <Separator />
 
-      {/* Firmas */}
       <div className="space-y-6">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <PenTool className="w-5 h-5" />
