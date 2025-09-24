@@ -15,7 +15,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error toggling part status:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

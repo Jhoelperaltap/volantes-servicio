@@ -3,16 +3,12 @@ import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Advanced stats endpoint called")
     const userRole = request.headers.get("x-user-role")
-    console.log("[v0] User role:", userRole)
 
     if (!userRole || !["admin", "super_admin"].includes(userRole)) {
-      console.log("[v0] Unauthorized access attempt")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    console.log("[v0] Starting equipment stats query...")
     const equipmentStatsResult = await query(`
       SELECT 
         e.type as equipment_type,
@@ -32,7 +28,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Starting location visits query...")
     const locationVisitsResult = await query(`
       SELECT 
         l.name as location_name,
@@ -53,7 +48,6 @@ export async function GET(request: NextRequest) {
       LIMIT 15
     `)
 
-    console.log("[v0] Starting location pending query...")
     const locationPendingResult = await query(`
       SELECT 
         l.name as location_name,
@@ -74,7 +68,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Starting parts usage query...")
     const partsUsageResult = await query(`
       SELECT 
         p.name as part_name,
@@ -97,7 +90,6 @@ export async function GET(request: NextRequest) {
       LIMIT 15
     `)
 
-    console.log("[v0] Starting service types trend query...")
     const serviceTypesTrendResult = await query(`
       SELECT 
         TO_CHAR(created_at, 'YYYY-MM') as month,
@@ -109,7 +101,6 @@ export async function GET(request: NextRequest) {
       ORDER BY month DESC, count DESC
     `)
 
-    console.log("[v0] All queries completed, formatting response...")
     const advancedStats = {
       equipmentStats: equipmentStatsResult.rows.map((row) => ({
         equipmentType: row.equipment_type || "No especificado",
@@ -158,10 +149,9 @@ export async function GET(request: NextRequest) {
       })),
     }
 
-    console.log("[v0] Response formatted successfully, returning data")
     return NextResponse.json(advancedStats)
   } catch (error) {
-    console.error("[v0] Error fetching advanced stats:", error)
+    console.error("Error en [v0] Advanced stats endpoint:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

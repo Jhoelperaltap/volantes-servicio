@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error("Error fetching parts:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -50,7 +49,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, id: result.rows[0].id })
   } catch (error) {
-    console.error("Error creating part:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

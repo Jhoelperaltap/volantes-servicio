@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(defaultSettings)
   } catch (error) {
-    console.error("Error fetching notification settings:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -124,7 +123,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Configuración guardada exitosamente" })
   } catch (error) {
-    console.error("Error saving notification settings:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

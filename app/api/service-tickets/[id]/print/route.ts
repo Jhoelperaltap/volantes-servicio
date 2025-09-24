@@ -3,24 +3,19 @@ import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log("[v0] Print endpoint - Starting request")
-
     const userId = request.headers.get("x-user-id")
     const userRole = request.headers.get("x-user-role")
 
     if (!userId) {
-      console.log("[v0] Print endpoint - No user ID")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     const { id } = params
-    console.log("[v0] Print endpoint - Ticket ID:", id)
 
-    // Primero obtener el volante básico
+    // Obtener el volante
     let whereClause = "WHERE id = $1"
     const queryParams = [id]
 
-    // Los técnicos solo pueden ver sus propios volantes
     if (userRole === "tecnico") {
       whereClause += " AND technician_id = $2"
       queryParams.push(userId)
@@ -28,10 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const ticketResult = await query(`SELECT * FROM service_tickets ${whereClause}`, queryParams)
 
-    console.log("[v0] Print endpoint - Ticket query result:", ticketResult.rows.length)
-
     if (ticketResult.rows.length === 0) {
-      console.log("[v0] Print endpoint - Ticket not found")
       return NextResponse.json({ error: "Volante no encontrado" }, { status: 404 })
     }
 
@@ -44,7 +36,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let equipment = null
 
     try {
-      // Obtener ubicación
       if (ticket.location_id) {
         const locationResult = await query("SELECT * FROM client_locations WHERE id = $1", [ticket.location_id])
         if (locationResult.rows.length > 0) {
@@ -55,7 +46,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             contact_phone: locationResult.rows[0].contact_phone,
           }
 
-          // Obtener empresa a través de client_locations
           if (locationResult.rows[0].company_id) {
             const companyResult = await query("SELECT * FROM companies WHERE id = $1", [
               locationResult.rows[0].company_id,
@@ -73,7 +63,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         }
       }
 
-      // Obtener técnico
       if (ticket.technician_id) {
         const technicianResult = await query("SELECT name, email FROM users WHERE id = $1", [ticket.technician_id])
         if (technicianResult.rows.length > 0) {
@@ -84,13 +73,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         }
       }
 
-      // Obtener equipo
       if (ticket.equipment_id) {
-        console.log("[v0] Print endpoint - Equipment ID found:", ticket.equipment_id)
         const equipmentResult = await query("SELECT * FROM equipment WHERE id = $1", [ticket.equipment_id])
-        console.log("[v0] Print endpoint - Equipment query result:", equipmentResult.rows.length)
         if (equipmentResult.rows.length > 0) {
-          console.log("[v0] Print endpoint - Equipment data:", equipmentResult.rows[0])
           equipment = {
             type: equipmentResult.rows[0].type,
             brand: equipmentResult.rows[0].brand,
@@ -98,11 +83,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             serial_number: equipmentResult.rows[0].serial_number,
           }
         }
-      } else {
-        console.log("[v0] Print endpoint - No equipment_id found in ticket")
       }
 
-      // Obtener configuración de empresa por defecto si no se encontró
       if (!company) {
         const companySettingsResult = await query("SELECT * FROM company_settings LIMIT 1")
         if (companySettingsResult.rows.length > 0) {
@@ -117,11 +99,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         }
       }
     } catch (relationError) {
-      console.log("[v0] Print endpoint - Error getting related data:", relationError)
-      // Continuar con datos básicos
+      console.error("[v0] Print endpoint - Error getting related data:", relationError)
     }
 
-    // Formatear la respuesta para impresión
+    // Formatear la respuesta
     const formattedTicket = {
       id: ticket.id,
       ticket_number: ticket.ticket_number,
@@ -164,7 +145,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       },
     }
 
-    console.log("[v0] Print endpoint - Returning formatted ticket")
     return NextResponse.json(formattedTicket)
   } catch (error) {
     console.error("[v0] Print endpoint - Error:", error)

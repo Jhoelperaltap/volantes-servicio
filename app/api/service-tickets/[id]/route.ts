@@ -3,17 +3,14 @@ import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log("[v0] GET individual service ticket - Starting")
     const userId = request.headers.get("x-user-id")
     const userRole = request.headers.get("x-user-role")
 
     if (!userId) {
-      console.log("[v0] GET individual service ticket - No user ID")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const { id } = await params
-    console.log("[v0] GET individual service ticket - ID:", id)
+    const { id } = params
 
     let whereClause = "WHERE st.id = $1"
     const queryParams = [id]
@@ -26,15 +23,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const result = await query(`SELECT st.* FROM service_tickets st ${whereClause}`, queryParams)
 
-    console.log("[v0] GET individual service ticket - Query result rows:", result.rows.length)
-
     if (result.rows.length === 0) {
-      console.log("[v0] GET individual service ticket - No ticket found")
       return NextResponse.json({ error: "Volante no encontrado" }, { status: 404 })
     }
 
     const ticket = result.rows[0]
-    console.log("[v0] GET individual service ticket - Found ticket:", ticket.ticket_number)
 
     let locationInfo = null
     const clientInfo = null
@@ -133,7 +126,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         : null,
     }
 
-    console.log("[v0] GET individual service ticket - Returning formatted ticket")
     return NextResponse.json(formattedTicket)
   } catch (error) {
     console.error("[v0] Error fetching service ticket:", error)

@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error("Error fetching locations summary:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

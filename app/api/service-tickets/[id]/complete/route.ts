@@ -4,13 +4,9 @@ import { query } from "@/lib/database"
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    console.log("[v0] Complete ticket API called for ID:", id)
 
     // Verificar que el usuario sea admin o super_admin
     const userRole = request.headers.get("x-user-role")
-    const userId = request.headers.get("x-user-id")
-
-    console.log("[v0] User role:", userRole, "User ID:", userId)
 
     if (!userRole || !["admin", "super_admin"].includes(userRole)) {
       return NextResponse.json({ error: "No tienes permisos para completar volantes" }, { status: 403 })
@@ -25,11 +21,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         body = JSON.parse(text)
         completion_note = body.completion_note
       }
-    } catch (jsonError) {
-      console.log("[v0] No JSON body provided, using null completion_note")
+    } catch {
+      // Si no hay body JSON, se ignora (completion_note queda null)
     }
 
-    // Verificar que el volante existe y está en estado pendiente, escalado o seguimiento
+    // Verificar que el volante existe
     const ticketResult = await query(
       "SELECT id, status, ticket_number, requires_return FROM service_tickets WHERE id = $1",
       [id],
@@ -66,8 +62,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
        WHERE id = $1`,
       [id, ticket.ticket_number],
     )
-
-    console.log("[v0] Ticket completed successfully:", id)
 
     return NextResponse.json({
       success: true,

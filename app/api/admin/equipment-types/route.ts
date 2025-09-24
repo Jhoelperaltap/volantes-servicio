@@ -2,31 +2,22 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest) {
-  console.log("[v0] Equipment Types GET - Route accessed")
-  console.log("[v0] Equipment Types GET - URL:", request.url)
-  console.log("[v0] Equipment Types GET - Method:", request.method)
-
   try {
     const userRole = request.headers.get("x-user-role")
-    console.log("[v0] Equipment Types GET - User role:", userRole)
-    console.log("[v0] Equipment Types GET - All headers:", Object.fromEntries(request.headers.entries()))
 
     if (!userRole || !["admin", "super_admin"].includes(userRole)) {
-      console.log("[v0] Equipment Types GET - Authorization failed")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    console.log("[v0] Equipment Types GET - Executing query")
     const result = await query(`
       SELECT * FROM equipment_types 
       WHERE is_active = true 
       ORDER BY display_name
     `)
 
-    console.log("[v0] Equipment Types GET - Query result:", result.rows.length, "rows")
     return NextResponse.json(result.rows)
-  } catch (error) {
-    console.error("[v0] Equipment Types GET - Error:", error)
+  } catch (error: any) {
+    console.error("[v0] Equipment Types GET - Error:", error.message, error.stack)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -60,8 +51,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (error) {
-    console.error("Error creating equipment type:", error)
+  } catch (error: any) {
+    console.error("[v0] Equipment Types POST - Error:", error.message, error.stack)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error("Error fetching pending tickets:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

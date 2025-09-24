@@ -3,17 +3,12 @@ import { query } from "@/lib/database"
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Advanced stats endpoint - Starting")
-
     const userRole = request.headers.get("x-user-role")
-    console.log("[v0] Advanced stats endpoint - User role:", userRole)
 
     if (!userRole || !["admin", "super_admin"].includes(userRole)) {
-      console.log("[v0] Advanced stats endpoint - Unauthorized")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    console.log("[v0] Advanced stats endpoint - Getting service type stats")
     const serviceTypeStats = await query(`
       SELECT 
         COALESCE(st.service_type, 'No especificado') as service_type,
@@ -27,7 +22,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Advanced stats endpoint - Getting location visits")
     const locationVisits = await query(`
       SELECT 
         COALESCE(l.name, 'Sin nombre') as location_name,
@@ -43,7 +37,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Advanced stats endpoint - Getting pending locations")
     const locationsPending = await query(`
       SELECT 
         COALESCE(l.name, 'Sin nombre') as location_name,
@@ -58,7 +51,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Advanced stats endpoint - Getting parts usage")
     const partsUsage = await query(`
       SELECT 
         part_data->>'name' as part_name,
@@ -75,7 +67,6 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `)
 
-    console.log("[v0] Advanced stats endpoint - Getting technician performance")
     const technicianStats = await query(`
       SELECT 
         u.name as technician_name,
@@ -124,10 +115,12 @@ export async function GET(request: NextRequest) {
       })),
     }
 
-    console.log("[v0] Advanced stats endpoint - Success, returning data")
     return NextResponse.json(response)
-  } catch (error) {
-    console.error("[v0] Advanced stats endpoint - Error:", error)
-    return NextResponse.json({ error: "Error interno del servidor", details: error.message }, { status: 500 })
+  } catch (error: any) {
+    console.error("Error en [v0] Advanced stats endpoint:", error)
+    return NextResponse.json(
+      { error: "Error interno del servidor", details: error.message },
+      { status: 500 }
+    )
   }
 }
